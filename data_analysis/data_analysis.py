@@ -272,7 +272,7 @@ class Algorithm(object):
         # print("The best parameters are %s with a score of %0.2f"
         #       % (grid.best_params_, grid.best_score_))
 
-        clf = SVC(kernel='rbf', gamma=1.0000000000000001e-05, C=100000.0)
+        clf = SVC(kernel='rbf', gamma=1000.0, C=100.0)
         clf.fit(self.X_train, self.y_train)
 
         print "****** S Results ******"
@@ -382,7 +382,7 @@ class Algorithm(object):
 
 def K_Fold(X_train, y_train, k):
     kf = KFold(n_splits=k)
-    clf_SVM = SVC(kernel='rbf', gamma=1.0000000000000001e-05, C=100000.0)
+    clf_SVM = SVC(kernel='rbf', gamma=1000.0, C=100.0)
     clf_DT = DecisionTreeClassifier(random_state=2)
     clf_RF = RandomForestClassifier(n_estimators=80, n_jobs=-1)
 
@@ -442,7 +442,7 @@ if __name__=="__main__":
     # }
     Network_Condition = 3
     iteration = 1
-    Test_Size = 0.01
+    Test_Size = 0.5
 
     # Pre-process data: used to pre-process data and generate samples in tmp dataset
     Data_preprocess(Network = Network_Condition)
