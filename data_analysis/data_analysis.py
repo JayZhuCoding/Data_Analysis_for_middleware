@@ -437,8 +437,11 @@ def k_means_clustering():
     import matplotlib.pyplot as plt
     from sklearn.decomposition import PCA
 
-    X_train, y_train, X_test, y_test = Get_Samples(dataset="dataset_tmp.txt", Test_Size=0.00001)
+    dataset = np.genfromtxt("dataset_tmp.txt", delimiter= ",")
+    m, n = dataset.shape
+    X_train = dataset[:,:n-1]
     X_train = preprocessing.scale(X_train)
+
     kmeans = KMeans(n_clusters=5, random_state=0, n_jobs=-1).fit(X_train)
     print kmeans.score(X_train)
 
