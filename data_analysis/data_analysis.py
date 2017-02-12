@@ -136,12 +136,12 @@ def Data_Analysis(dataSet):
     print deviation
 
     print "********************* Non-Adaptive Optimization Methods ***********************"
-    print "Opt. Compression level 1:", 100 - (float(sum2 * 100) / sum1), "%"
-    print "Opt. Compression level 3:", 100 - (float(sum3 * 100) / sum1), "%"
-    print "Opt. Compression level 6:", 100 - (float(sum4 * 100) / sum1), "%"
-    print "Opt. Compression level 9:", 100 - (float(sum5 * 100) / sum1), "%"
+    print "Opt. Compression level 1:", 100 - (float(sum2 * 100) / sum1), "%", float(sum2) / sum1
+    print "Opt. Compression level 3:", 100 - (float(sum3 * 100) / sum1), "%", float(sum3) / sum1
+    print "Opt. Compression level 6:", 100 - (float(sum4 * 100) / sum1), "%", float(sum4) / sum1
+    print "Opt. Compression level 9:", 100 - (float(sum5 * 100) / sum1), "%", float(sum5) / sum1
 
-    print "Maximum Optimization Percentage:", float(deviation * 100) / sum1, "%"
+    print "Maximum Optimization Percentage:", float(deviation * 100) / sum1, "%", float(deviation) / sum1
     # print "Comparison: ", ((float(sum2)/sum1)-1)*100
     print "Number of sample:", len(rst)
 
@@ -280,6 +280,181 @@ def _calculate_energy_saving(clf, dataSet, Network_Condition):
     return float(optimization * 100) / sum_no_opt
 
 
+from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.pylab import *
+from sklearn import svm
+from sklearn.svm import SVC
+
+
+# gaussian kernel computation for 2D plot
+def rbf_accuracy_2d(X, y):
+    # set range for free parameters
+    C_range = np.logspace(-2, 2, 5)
+    gamma_range = np.logspace(-14, 8, 23)
+    pl = plt.figure()
+    xy = pl.add_subplot(111)
+
+    # fit
+    for i in range(len(C_range)):
+        acc_rbf = []
+        for j in range(len(gamma_range)):
+            print i, j
+            clf = svm.SVC(kernel='rbf', gamma=gamma_range[j])
+            clf.C = C_range[i]
+            clf.fit(X, y)
+            acc_rbf.append(np.mean(cross_val_score(clf, X, y, cv=5, n_jobs=-1)))
+
+        # plot
+        xy.plot(gamma_range, acc_rbf, label="C = " + str(C_range[i]))
+    xy.set_xlabel('Gamma')
+    xy.set_ylabel('Accuracy')
+    xy.set_xscale('log', basex=10)
+    plt.legend(loc="upper left")
+    plt.grid('on')
+    plt.show()
+
+
+# gaussian kernel computation for 3D plot
+def rbf_acc(X, y):
+    # set range for free parameters
+    C_range = np.logspace(-15, 4, 20)
+    gamma_range = np.logspace(-14, 5, 20)
+
+    # fit
+    acc_rbf = []
+    for i in range(len(C_range)):
+        for j in range(len(gamma_range)):
+            print i, j
+            clf = svm.SVC(kernel='rbf', gamma=gamma_range[j])
+            clf.C = C_range[i]
+            clf.fit(X, y)
+            acc_rbf.append(np.mean(cross_val_score(clf, X, y, cv=5, n_jobs=-1)))
+
+    # generate 3D usable data
+    aa = np.reshape(acc_rbf, (len(C_range), len(gamma_range)))
+    xx = np.array([C_range] * len(C_range))
+    yy = np.array([gamma_range] * len(gamma_range)).T
+    return xx, yy, aa
+
+
+# 3D plot for gaussian kernel
+def plot_acc_3d_rbf(aa):
+    # generate labels for log scale since the log scale is not supported
+    c = np.zeros(20)
+    g = np.zeros(20)
+    for i in range(20):
+        c[i] = -15 + i
+        g[i] = -14 + i
+    C_label = np.array([c] * 20)
+    gamma_label = np.array([g] * 20).T
+
+    # plot
+    pl = plt.figure()
+    xyz = pl.gca(projection='3d')
+    xyz.plot_surface(gamma_label, C_label, aa, rstride=1, cstride=1, alpha=0.75)
+    # set plot
+    cset = xyz.contourf(gamma_label, C_label, aa, zdir='x', offset=7, cmap=cm.coolwarm)
+    cset = xyz.contourf(gamma_label, C_label, aa, zdir='y', offset=6, cmap=cm.coolwarm)
+    cset = xyz.contourf(gamma_label, C_label, aa, zdir='z', offset=0, cmap=cm.coolwarm)
+
+    xyz.set_ylabel('C')
+    xyz.set_xlabel('Gamma')
+    xyz.set_zlabel('Accuracy')
+
+    xyz.set_ylim(-16, 6)
+    xyz.set_xlim(-15, 7)
+    xyz.set_zlim(0, 1.0)
+    plt.show()
+
+
+# polynomial kernel computation for 2D plot
+def poly_accuracy_2d(X, y):
+    # set range for free parameters
+    C_range = np.logspace(-5, -1, 5)
+    degree_range = []
+    for k in range(7):
+        degree_range.append(k + 1)
+    pl = plt.figure()
+    xy = pl.add_subplot(111)
+
+    # fit
+    for i in range(len(C_range)):
+        acc_poly = []
+        for j in range(len(degree_range)):
+            print i, j
+            clf = svm.SVC(kernel='poly', degree=degree_range[j], gamma=1, coef0=1)
+            clf.C = C_range[i]
+            clf.fit(X, y)
+            acc_poly.append(np.mean(cross_val_score(clf, X, y, cv=5, n_jobs=-1)))
+            print acc_poly
+        # plot
+        xy.plot(degree_range, acc_poly, label="C = " + str(C_range[i]))
+    xy.set_xlabel('Degree')
+    xy.set_ylabel('Accuracy')
+    plt.legend(loc="upper left")
+    plt.grid('on')
+    plt.show()
+
+
+def poly_acc(X, y):
+    C_range = np.logspace(-9, 6, 7)
+    degree_range = []
+    for k in range(7):
+        degree_range.append(k + 1)
+
+    # fit
+    acc_poly = []
+    for i in range(len(C_range)):
+        for j in range(len(degree_range)):
+            print i, j
+            clf = svm.SVC(kernel='poly', degree=degree_range[j], gamma=1, coef0=1)
+            clf.C = C_range[i]
+            clf.fit(X, y)
+            acc_poly.append(np.mean(cross_val_score(clf, X, y, cv=5, n_jobs=-1)))
+    aa = np.reshape(acc_poly, (len(C_range), len(degree_range)))
+    # plot
+    xx = np.array([C_range] * len(C_range))
+    yy = np.array([degree_range] * len(degree_range)).T
+    print xx.shape, yy.shape, aa.shape
+    return xx, yy, aa
+
+
+def plot_acc_3d_poly(aa, yy):
+    c = np.zeros(7)
+    for i in range(7):
+        c[i] = -6 + i
+    C_label = np.array([c] * 7)
+    pl = plt.figure()
+    xyz = pl.gca(projection='3d')
+    xyz.plot_surface(C_label, yy, aa, rstride=1, cstride=1, alpha=0.23)
+
+    cset = xyz.contourf(C_label, yy, aa, zdir='x', offset=-10, cmap=cm.coolwarm)
+    cset = xyz.contourf(C_label, yy, aa, zdir='y', offset=8, cmap=cm.coolwarm)
+    cset = xyz.contourf(C_label, yy, aa, zdir='z', offset=0.988, cmap=cm.coolwarm)
+
+    xyz.set_xlabel('C (log scale)')
+    xyz.set_ylabel('Degree')
+    xyz.set_zlabel('Accuracy')
+
+    xyz.set_xlim(-10, 0)
+    xyz.set_ylim(0, 8)
+    xyz.set_zlim(0.988, 1.0)
+    plt.show()
+
+
+def grid_search(X, y):
+    # set range of parameters
+    C_range = np.logspace(-5, 5, 11)
+    gamma_range = np.logspace(-5, 5, 11)
+    # generate grid and fit
+    param_grid = dict(gamma=gamma_range, C=C_range)
+    grid = GridSearchCV(SVC(), param_grid=param_grid, cv=5, n_jobs=-1)
+    grid.fit(X, y)
+    print("The best parameters are %s with a ROC area %0.3f" % (grid.best_params_, grid.best_score_))
+
+
 class Algorithm(object):
     def __init__(self, X_train, y_train, X_test, y_test, Network_Condition):
         self.X_train = X_train
@@ -300,8 +475,10 @@ class Algorithm(object):
         # print("The best parameters are %s with a score of %0.2f"
         #       % (grid.best_params_, grid.best_score_))
 
-        clf = SVC(kernel='rbf', gamma=1.0, C=1.0)
+        clf = SVC(kernel='rbf', gamma=10.0, C=1.0)
+        startTime = time()
         clf.fit(self.X_train, self.y_train)
+        print "S Training Time: ", (time() - startTime) * 1000, "ms"
 
         print "****** S Results ******"
         startTime = time()
@@ -320,31 +497,50 @@ class Algorithm(object):
     # Neural Network
     def NN_Accuracy(self):
         clf = MLPClassifier(activation='tanh', solver='lbfgs',
-                            hidden_layer_sizes=(3, 64,), random_state=None, max_iter=800, )
-        clf.fit(self.X_train, self.y_train)
+                            hidden_layer_sizes=(300, 300, 300, ), random_state=None, max_iter=5000, )
+        startTime = time()
+        clf.fit(normalization(self.X_train), self.y_train)
+        print "NN Training Time: ", (time() - startTime) * 1000, "ms"
 
         print "****** NN Results ******"
         startTime = time()
-        clf.predict(self.X_test)
+        clf.predict(normalization(self.X_test))
         print "Time Spent:", (time() - startTime) * 1000, "ms"
-        print "NN Accuracy is:", clf.score(self.X_test, self.y_test), "\n"
+        print "NN Accuracy is:", clf.score(normalization(self.X_test), self.y_test), "\n"
 
         X_train_1, y_train_1, X_test_1, y_test_1 = Get_Samples(dataset="dataset_tmp.txt", Test_Size=0.999)
-        print "NN Accuracy on Original Dataset is:", clf.score(X_test_1, y_test_1), "\n"
+        print "NN Accuracy on Original Dataset is:", clf.score(normalization(X_test_1), y_test_1), "\n"
         energy_saving = _calculate_energy_saving(clf, "dataset_tmp.txt", Network_Condition)
         print "Energy Consumption(Optimized):", energy_saving, "%\n"
         return energy_saving
 
     # Random Forest
     def RF_Accuracy(self):
-        clf = RandomForestClassifier(n_estimators=80, n_jobs=-1)
-        clf.fit(self.X_train, self.y_train)
+        pl = plt.figure()
+        xy = pl.add_subplot(111)
+        acc = []
+        x_axis = []
+        for i in xrange(1):
+            x_axis.append((i + 1))
+            clf = RandomForestClassifier(n_estimators=80, n_jobs=-1)
+            startTime = time()
+            clf.fit(self.X_train, self.y_train)
+            print "RF Training Time: ", (time() - startTime) * 1000, "ms"
+            print "****** RF Results ******"
+            startTime = time()
+            clf.predict(self.X_test)
+            score = clf.score(self.X_test, self.y_test)
+            print "Time Spent:", (time() - startTime) * 1000, "ms"
+            print "RF Accuracy is:", score, "\n"
+            acc.append(score)
 
-        print "****** RF Results ******"
-        startTime = time()
-        clf.predict(self.X_test)
-        print "Time Spent:", (time() - startTime) * 1000, "ms"
-        print "RF Accuracy is:", clf.score(self.X_test, self.y_test), "\n"
+        # # plot
+        # xy.plot(x_axis, acc)
+        # xy.set_xlim(0, 200)
+        # xy.set_xlabel('Number of Estimators')
+        # xy.set_ylabel('Accuracy')
+        # plt.grid('on')
+        # plt.show()
 
         X_train_1, y_train_1, X_test_1, y_test_1 = Get_Samples(dataset="dataset_tmp.txt", Test_Size=0.999)
         print "RF Accuracy on Original Dataset is:", clf.score(X_test_1, y_test_1), "\n"
@@ -354,14 +550,33 @@ class Algorithm(object):
 
     # k-NN
     def KN_Accuracy(self):
-        clf = KNeighborsClassifier(n_neighbors=1)
-        clf.fit(self.X_train, self.y_train)
+        pl = plt.figure()
+        xy = pl.add_subplot(111)
+        acc = []
+        x_axis = []
 
-        print "****** KN Results ******"
-        startTime = time()
-        clf.predict(self.X_test)
-        print "Time Spent:", (time() - startTime) * 1000, "ms"
-        print "KN Accuracy is:", clf.score(self.X_test, self.y_test), "\n"
+        for i in xrange(1):
+            x_axis.append((i + 1))
+            clf = KNeighborsClassifier(n_neighbors=1)
+            startTime = time()
+            clf.fit(self.X_train, self.y_train)
+            print "KNN Training Time: ", (time() - startTime) * 1000, "ms"
+
+            print "****** KNN Results ******"
+            startTime = time()
+            clf.predict(self.X_test)
+            score = clf.score(self.X_test, self.y_test)
+            print "Time Spent:", (time() - startTime) * 1000, "ms"
+            print "KNN Accuracy is:", score, "\n"
+            acc.append(score)
+
+        # # plot
+        # xy.plot(x_axis, acc)
+        # xy.set_xlim(1, 150)
+        # xy.set_xlabel('Value of k')
+        # xy.set_ylabel('Accuracy')
+        # plt.grid('on')
+        # plt.show()
 
         X_train_1, y_train_1, X_test_1, y_test_1 = Get_Samples(dataset="dataset_tmp.txt", Test_Size=0.999)
         print "KN Accuracy on Original Dataset is:", clf.score(X_test_1, y_test_1), "\n"
@@ -389,7 +604,9 @@ class Algorithm(object):
     # Decision Tree
     def DT_Accuracy(self):
         clf = DecisionTreeClassifier(random_state=2)
+        startTime = time()
         clf.fit(self.X_train, self.y_train)
+        print "DT Training Time: ", (time() - startTime) * 1000, "ms"
         # Model Persistence
         joblib.dump(clf, 'DecisionTreeModel.pkl')
 
@@ -410,9 +627,12 @@ class Algorithm(object):
 
 def K_Fold(X_train, y_train, k):
     kf = KFold(n_splits=k)
-    clf_SVM = SVC(kernel='rbf')
+    clf_SVM = SVC(kernel='rbf', gamma=10.0, C=1.0)
     clf_DT = DecisionTreeClassifier(random_state=2)
+    clf_NN = MLPClassifier(activation='tanh', solver='lbfgs',
+                           hidden_layer_sizes=(200, 200,), random_state=None, max_iter=5000, )
     clf_RF = RandomForestClassifier(n_estimators=80, n_jobs=-1)
+    clf_KNN = KNeighborsClassifier(n_neighbors=1)
 
     print cross_val_score(clf_SVM, X_train, y_train, cv=kf, n_jobs=-1)
     predicted = cross_val_predict(clf_SVM, X_train, y_train, cv=kf, n_jobs=-1)
@@ -422,8 +642,16 @@ def K_Fold(X_train, y_train, k):
     predicted = cross_val_predict(clf_DT, X_train, y_train, cv=kf, n_jobs=-1)
     print metrics.accuracy_score(y_train, predicted)
 
+    print cross_val_score(clf_NN, normalization(X_train), y_train, cv=kf, n_jobs=-1)
+    predicted = cross_val_predict(clf_NN, normalization(X_train), y_train, cv=kf, n_jobs=-1)
+    print metrics.accuracy_score(y_train, predicted)
+
     print cross_val_score(clf_RF, X_train, y_train, cv=kf, n_jobs=-1)
     predicted = cross_val_predict(clf_RF, X_train, y_train, cv=kf, n_jobs=-1)
+    print metrics.accuracy_score(y_train, predicted)
+
+    print cross_val_score(clf_KNN, X_train, y_train, cv=kf, n_jobs=-1)
+    predicted = cross_val_predict(clf_KNN, X_train, y_train, cv=kf, n_jobs=-1)
     print metrics.accuracy_score(y_train, predicted)
 
 
@@ -446,24 +674,24 @@ def energy_optimization(X_train, y_train, X_test, y_test, Network_Condition, ite
 
     for i in range(iteration):
         avg_S += al.S_Accuracy_SVM()
-        avg_NN += al.NN_Accuracy()
+        # avg_NN += al.NN_Accuracy()
         avg_RF += al.RF_Accuracy()
         avg_KN += al.KN_Accuracy()
         # avg_NB += al.NB_Accuracy()
         avg_DT += al.DT_Accuracy()
 
     print "Network:", network_map.get(Network_Condition)
-    print "Average SVM optimization:", float(100 * iteration - avg_S) / iteration, "%"
-    print "Average Random Forest optimization:", float(100 * iteration - avg_RF) / iteration, "%"
-    print "Average K-NN optimization:", float(100 * iteration - avg_KN) / iteration, "%"
-    print "Average Decision Tree optimization:", float(100 * iteration - avg_DT) / iteration, "%"
-    print "Average NN optimization:", float(100 * iteration - avg_NN) / iteration, "%"
+    print "Average SVM optimization:", float(100 * iteration - avg_S) / iteration, "%", float(avg_S)/ 100.0 / iteration
+    print "Average Random Forest optimization:", float(100 * iteration - avg_RF) / iteration, "%", float(avg_RF)/ 100.0 / iteration
+    print "Average K-NN optimization:", float(100 * iteration - avg_KN) / iteration, "%", float(avg_KN) / 100.0 / iteration
+    print "Average Decision Tree optimization:", float(100 * iteration - avg_DT) / iteration, "%", float(avg_DT) / 100.0 / iteration
+    # print "Average NN optimization:", float(100 * iteration - avg_NN) / iteration, "%"
     # print "Average NB optimization:", float(100 * iteration - avg_NB) / iteration, "%"
 
 
 def normalization(data):
     from sklearn.preprocessing import MinMaxScaler
-    m = MinMaxScaler()
+    m = MinMaxScaler(feature_range=(0, 6))
     data = m.fit_transform(data)
     # print data[0]
     return data
@@ -480,7 +708,7 @@ def k_means_clustering():
     X_train = normalization(X_train)
 
     # Mean-Shift
-    bandwidth = estimate_bandwidth(X_train, quantile=0.3, n_jobs=-1)
+    bandwidth = estimate_bandwidth(X_train, quantile=0.35, n_jobs=-1)
 
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=False, n_jobs=-1)
     ms.fit(X_train)
@@ -493,46 +721,66 @@ def k_means_clustering():
 
     # K-Means and visualization after PCA
 
-    kmeans = KMeans(n_clusters=5, random_state=0, n_jobs=-1).fit(X_train)
-    # print kmeans.score(X_train)
-
     reduced_data = PCA(n_components=2).fit_transform(X_train)
-    kmeans = KMeans(init='k-means++', n_clusters=5, n_init=10)
-    kmeans.fit(reduced_data)
+    kmeans = KMeans(init='k-means++', n_clusters=5)
+    rst_pred = kmeans.fit_predict(X_train, y_train)
+    z = 0
+    o = 0
+    t = 0
+    th = 0
+    f = 0
+    for n in rst_pred:
+        if n == 0:
+            z += 1
+        if n == 1:
+            o += 1
+        if n == 2:
+            t += 1
+        if n == 3:
+            th += 1
+        if n == 4:
+            f += 1
+    print float(z) / X_train.shape[0]
+    print float(o) / X_train.shape[0]
+    print float(t) / X_train.shape[0]
+    print float(th) / X_train.shape[0]
+    print float(f) / X_train.shape[0]
 
-    # Step size of the mesh. Decrease to increase the quality of the VQ.
-    h = .02  # point in the mesh [x_min, x_max]x[y_min, y_max].
-
-    # Plot the decision boundary. For that, we will assign a color to each
-    x_min, x_max = reduced_data[:, 0].min() - 1, reduced_data[:, 0].max() + 1
-    y_min, y_max = reduced_data[:, 1].min() - 1, reduced_data[:, 1].max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
-
-    # Obtain labels for each point in mesh. Use last trained model.
-    Z = kmeans.predict(np.c_[xx.ravel(), yy.ravel()])
-
-    # Put the result into a color plot
-    Z = Z.reshape(xx.shape)
-    plt.figure(1)
-    plt.clf()
-    plt.imshow(Z, interpolation='nearest',
-               extent=(xx.min(), xx.max(), yy.min(), yy.max()),
-               cmap=plt.cm.Paired,
-               aspect='auto', origin='lower')
-
-    plt.plot(reduced_data[:, 0], reduced_data[:, 1], 'k.', markersize=3)
-    # Plot the centroids as a white X
-    centroids = kmeans.cluster_centers_
-    plt.scatter(centroids[:, 0], centroids[:, 1],
-                marker='x', s=30, linewidths=1,
-                color='w', zorder=15)
-    plt.title('K-means clustering on the digits dataset (PCA-reduced data)\n'
-              'Centroids are marked with white cross')
-    plt.xlim(x_min, x_max)
-    plt.ylim(y_min, y_max)
-    plt.xticks(())
-    plt.yticks(())
-    plt.show()
+    # kmeans.fit(reduced_data)
+    #
+    # # Step size of the mesh. Decrease to increase the quality of the VQ.
+    # h = .02  # point in the mesh [x_min, x_max]x[y_min, y_max].
+    #
+    # # Plot the decision boundary. For that, we will assign a color to each
+    # x_min, x_max = reduced_data[:, 0].min() - 1, reduced_data[:, 0].max() + 1
+    # y_min, y_max = reduced_data[:, 1].min() - 1, reduced_data[:, 1].max() + 1
+    # xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+    #
+    # # Obtain labels for each point in mesh. Use last trained model.
+    # Z = kmeans.predict(np.c_[xx.ravel(), yy.ravel()])
+    #
+    # # Put the result into a color plot
+    # Z = Z.reshape(xx.shape)
+    # plt.figure(1)
+    # plt.clf()
+    # plt.imshow(Z, interpolation='nearest',
+    #            extent=(xx.min(), xx.max(), yy.min(), yy.max()),
+    #            cmap=plt.cm.Paired,
+    #            aspect='auto', origin='lower')
+    #
+    # plt.plot(reduced_data[:, 0], reduced_data[:, 1], 'k.', markersize=3)
+    # # Plot the centroids as a white X
+    # centroids = kmeans.cluster_centers_
+    # plt.scatter(centroids[:, 0], centroids[:, 1],
+    #             marker='x', s=30, linewidths=1,
+    #             color='w', zorder=15)
+    # plt.title('K-means clustering PCA-reduced dataset\n'
+    #           'Centroids are marked with white crosses')
+    # plt.xlim(x_min, x_max)
+    # plt.ylim(y_min, y_max)
+    # plt.xticks(())
+    # plt.yticks(())
+    # plt.show()
 
 
 def threeD_visual(X, y):
@@ -569,9 +817,9 @@ if __name__ == "__main__":
     #             4 : "4G Network",
     #             5 : "Wifi Network"
     # }
-    Network_Condition = 3  # number of non-compressed files increases when network gets better
+    Network_Condition = 5  # number of non-compressed files increases when network gets better
     iteration = 1
-    Test_Size = 0.5
+    Test_Size = 0.45
 
     # Pre-process data: used to pre-process data and generate samples in tmp dataset
     Data_preprocess(Network=Network_Condition)
@@ -583,7 +831,7 @@ if __name__ == "__main__":
     X_train, y_train, X_test, y_test = Get_Samples(dataset="dataset_random.txt", Test_Size=Test_Size)
 
     # # K Fold Cross-Validation
-    # K_Fold(X_train, y_train, 20)
+    # K_Fold(X_train, y_train, 10)
 
     # Prediction
     energy_optimization(X_train, y_train, X_test, y_test, Network_Condition, iteration)
@@ -593,3 +841,12 @@ if __name__ == "__main__":
     #
     # # Visualization
     # threeD_visual(X_train, y_train)
+
+    # parameter grid search
+    # rbf_accuracy_2d(X_train, y_train)
+    # xx, yy, aa = rbf_acc(X_train, y_train)
+    # plot_acc_3d_rbf(aa)
+
+    # poly_accuracy_2d(X_train, y_train)
+    # xx, yy, aa = poly_acc(X_train, y_train)
+    # plot_acc_3d_poly(aa, yy)
